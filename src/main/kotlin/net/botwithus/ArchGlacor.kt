@@ -34,6 +34,7 @@ import net.botwithus.rs3.game.Inventory
 import net.botwithus.rs3.game.Item
 import net.botwithus.rs3.game.js5.types.vars.VarDomainType
 import net.botwithus.rs3.game.minimenu.actions.GroundItemAction
+import net.botwithus.rs3.game.queries.builders.items.GroundItemQuery
 import net.botwithus.rs3.game.queries.builders.items.InventoryItemQuery
 import java.util.*
 import java.util.regex.Pattern
@@ -183,6 +184,7 @@ class ArchGlacor(
                 //Execution.delay(monitorprojetile())
                 //Execution.delay(ArchGlacorAnimation())
                 Execution.delay(handleSkilling(player))
+                //Execution.delay(AnimationIDFinder())
 
 
                 return
@@ -323,9 +325,8 @@ class ArchGlacor(
         val playerLocation = Client.getLocalPlayer()?.coordinate
         val creepingice: ProjectileQuery = ProjectileQuery.newQuery().id(7480)
         val creepingiceresult: EntityResultSet<Projectile> = creepingice.results()
-        //var projectileTargetPlayer = Queries.queryProjectiles([ -> predica])
         var currentcycle: Int = net.botwithus.rs3.game.Client.getClientCycle()
-        val randomXoffSet = RandomGenerator.nextInt(4, 9)
+        val randomXoffSet = RandomGenerator.nextInt(4,9)
         val randomYoffSet = RandomGenerator.nextInt(-2, 2)
         for (projectile in creepingiceresult) {
             val playerPosition = playerLocation?.coordinate
@@ -341,22 +342,22 @@ class ArchGlacor(
             val endCycle = projectile.endCycle
             val test = projectile.source
 
-            /*println("-------------------------------")
-            println("Projectile ID:  $id")
+            /*println("Projectile ID:  $id")
             println("projectile Start Coordinates X:  $startCoordsX")
             println("projectile Start Coordinates Y:  $startCoordsY")
+            println("-------------------------------")*/
             println("projectile Destination Coordinates X: $destinationCoordsX")
-            println("projectile Destination Coordinates Y: $destinationCoordsY")
-            println("Start Cycle:: $startCycle")
+            //println("projectile Destination Coordinates Y: $destinationCoordsY")
+            /*println("Start Cycle:: $startCycle")
             println("End Cycle:: $endCycle")
             println("-------------------------------")
             println("player Start Coordinates X :  $playerPostionX")
             println("player Start Coordinates Y :  $playerPostionY")*/
 
 
-
-            if (playerLocation?.coordinate?.x!! > projectile.destination.x || playerLocation?.coordinate?.x!! < projectile.destination.x) {
-                println("Player X Coor $playerPostionX")
+                //
+            if ((playerLocation?.coordinate?.x!! > projectile.destination.x || playerLocation?.coordinate?.x!! < projectile.destination.x) && currentcycle < endCycle) {
+                //println("Player X Coor $playerPostionX")
                 val newx = destinationCoordsX + randomXoffSet
                 val newy = playerPostionY!! + randomYoffSet
                 println("newx $newx")
@@ -365,8 +366,9 @@ class ArchGlacor(
                 Execution.delay(1000)
                 println("Moved to position to avoid Creeping Ice")
                 println("Player X Coor after move $playerPostionX")
+
             }
-            //println("projectile Destination Coordinates: $destinationCoordsX")
+            println("projectile Destination Coordinates After loop: $destinationCoordsX")
             //println("projectile Destination Coordinates: $destinationCoordsY")
 
             /*if(projectile.isInFlight(currentcycle.toLong())) {
@@ -385,22 +387,33 @@ class ArchGlacor(
     }
 
 
-    private fun AnimationIDFinder() {
+    private fun AnimationIDFinder(): Long {
         val Flurry: ResultSet<Npc> = NpcQuery.newQuery().name("Arch-Glacor").results()
         var FlurryNum: Int = 1
         if (Flurry.isEmpty)
             if (debugMode) {
                 println("No Arch-Glacor Found")
-                return
+                return random.nextLong(1000,2000)
             }
         Flurry.forEach {
             if (debugMode)
                 println("Glacyte Number $FlurryNum animation ID: ${it.animationId}")
+            var resonance: Component? = ComponentQuery.newQuery(284).spriteId(14222).results().first()
+            var ResCooldown: Int = ActionBar.getCooldown("Resonance")
+            println("CoolDown Remaining $ResCooldown")
 
-            return
+            if (resonance == null && ResCooldown == 0) {
+                val success: Boolean = ActionBar.useAbility("Resonance")
+                println("Resonance Activated")
+                if (success) {
+                    ResonanceActive++
+                }
+            }
+            return random.nextLong(1000,2000)
+
         }
 
-        return
+        return random.nextLong(1000,2000)
     }
 
 
@@ -429,6 +442,10 @@ class ArchGlacor(
         val playerLocation = Client.getLocalPlayer()?.coordinate
         val sheercold = NpcQuery.newQuery().name("Sheer cold")
         val sheerresult: EntityResultSet<Npc> = sheercold.results()
+
+        val creepingice: ProjectileQuery = ProjectileQuery.newQuery().id(7480)
+        val creepingiceresult: EntityResultSet<Projectile> = creepingice.results()
+        var creepingICEx: Int = 0
         val randomXoffSet = RandomGenerator.nextInt(-5, 5)
         val randomYoffSet = RandomGenerator.nextInt(-2, 2)
         var newcord = Coordinate(playerLocation!!.x + randomXoffSet, playerLocation!!.y + randomYoffSet, 0)
@@ -470,6 +487,13 @@ class ArchGlacor(
             aqueductportal.coordinate?.y?.minus(4)!!, aqueductportal.coordinate?.z!!
         )
 
+        for(projectile1 in creepingiceresult)
+        {
+
+
+            creepingICEx = projectile1.destination.x
+        }
+
         for (projectile in sheerresult) {
             val currentNpcPosition = projectile?.coordinate
             val currentNpcPositionx = projectile?.coordinate?.x
@@ -493,8 +517,11 @@ class ArchGlacor(
             println(message1)
             println("--------------")
 
-
-            if (playerLocation != null) ///(playerPositionx != null && playerPositiony != null) && (previousNpcPositionx != 0 && previousNpcPositiony != 0)  //&& previousNpcPosition != null
+            if( playerLocation.x < creepingICEx)
+            {
+                Travel.walkTo(nearboss)
+            }
+            if (playerLocation != null ) ///(playerPositionx != null && playerPositiony != null) && (previousNpcPositionx != 0 && previousNpcPositiony != 0)  //&& previousNpcPosition != null
             {
                 var newcord = Coordinate(playerLocation!!.x + randomXoffSet, playerLocation!!.y + randomYoffSet, 0)
                 println("Inside First If statement -----------------")
@@ -767,6 +794,7 @@ class ArchGlacor(
                 soulSplitActive = true;
         } else {
             println("Fail to activate Soul Split")
+
         }
 
     }
@@ -819,26 +847,24 @@ class ArchGlacor(
         var healthPercent: Int = (currentHealth * 100) / maxHealth
         var prayerPoints: Int = player.prayerPoints
 
-        if (currentHealth <= 6000) {
+        if (currentHealth <= 7000) {
             println("Health is low. Eating/Drinking Food")
-
-            if (isOverloadActive()) {
+            ActionBar.useAbility("Eat Food")
+            /*if (isOverloadActive()) {
                 ActionBar.useAbility("Brew")
             } else {
                 ActionBar.useAbility("Eat Food")
-            }
+            }*/
 
             if (prayerPoints <= 5000) {
                 usePrayerPotions()
             }
         }
-        if (player.inCombat() && !soulSplitActive) {
+       /* if (player.inCombat() && !soulSplitActive) {
             updateSoulSplitActivation()
         } else if (player.inCombat() && soulSplitActive) {
             deactivateSoulSplit()
-        }
-
-
+        }*/
     }
 
     public fun usePrayerPotions() {
@@ -866,13 +892,30 @@ class ArchGlacor(
         //println("Player Animation ID Before function:  ${player.animationId}")
 
         //println("Player Animation ID after function:  ${player.animationId}")
-        // var regionId = player.coordinate.regionId
-        //println("Region ID Before Portal Check  $regionId")
+        var regionId = player.coordinate.regionId
+        println("Region ID Before Portal Check  $regionId")
+        println("Prayer Points: ${player.prayerPoints}")
+
+        var adrenalinenumber1: Int = VarManager.getVarValue(VarDomainType.PLAYER, 679)
 
 
         //773 Loot Inventory
         if (player.coordinate.regionId == 13214) {
             val portalquery: SceneObject? = SceneObjectQuery.newQuery().name("Portal (Arch-Glacor)").results().nearest()
+            val adrilnecrystal: SceneObject? = SceneObjectQuery.newQuery().name("Adrenaline crystal").results().nearest()
+            val prayeraltar: SceneObject? = SceneObjectQuery.newQuery().name("Altar of War").results().nearest()
+
+            if(prayeraltar  != null && player.prayerPoints < 8000)
+            {
+                prayeraltar.interact("Pray")
+                Execution.delay(random.nextLong(5000, 7000))
+            }
+            if(adrilnecrystal != null && adrenalinenumber1 < 700)
+            {
+                adrilnecrystal.interact("Channel")
+                Execution.delay(random.nextLong(10000, 15000))
+            }
+
             if (portalquery != null) {
                 val success: Boolean = portalquery.interact("Enter")
                 //println("Interacted with Portal $success")
@@ -880,48 +923,270 @@ class ArchGlacor(
                     return random.nextLong(300, 1200)
                 }
             }
+            println("War Area")
+            println("First Loop ${player.coordinate.regionId}")
+            return random.nextLong(1000, 1500)
         }
         if (player.coordinate.regionId == 6929) {
-            val aqueductportal = SceneObjectQuery.newQuery().name("Aqueduct Portal").results().nearest()
-            if (aqueductportal != null) {
-                val success1: Boolean = aqueductportal.interact("Enter")
+            val aqueductportal22 = SceneObjectQuery.newQuery().name("Aqueduct Portal").results().nearest()
+            println("Portal Select Area")
+            println("Second Loop ${player.coordinate.regionId}")
+            if (aqueductportal22 != null) {
+                println("Portal Check Loop")
+                val success1: Boolean = aqueductportal22.interact("Enter")
+                Execution.delay(2000)
+                MiniMenu.interact(ComponentAction.DIALOGUE.type, 1, -1, 104267836)
 
                 ///println("Interacted with Portal $success1")
-                if (success1) {
+                /*if (success1) {
 
                     val successStart: Boolean = (MiniMenu.interact(ComponentAction.DIALOGUE.type, 1, -1, 104267836))
                     println("Opening New Instance")
                     return random.nextLong(250, 950)
 
 
-                }
+                }*/
+                return random.nextLong(2000, 3000)
             }
+            return random.nextLong(250, 950)
+        }
 
 
             val ArchGlacor1: ResultSet<Npc> = NpcQuery.newQuery().name("Arch-Glacor").results();
+            val ArchGlacor2: Npc? = NpcQuery.newQuery().name("Arch-Glacor").results().nearest()
+            val aqueductportalinside = SceneObjectQuery.newQuery().name("Lobby Portal").results().nearest()
+        val aqueductportal = SceneObjectQuery.newQuery().name("Lobby Portal").results().nearest()
+        val topleft: Coordinate = Coordinate(
+            aqueductportal?.coordinate?.x?.minus(1)!!,
+            aqueductportal.coordinate?.y?.minus(4)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val topRight: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.minus(1)!!,
+            aqueductportal.coordinate?.y?.plus(2)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val bottomLeft: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.plus(30)!!,
+            aqueductportal.coordinate?.y?.minus(4)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val bottomRight: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.plus(30)!!,
+            aqueductportal.coordinate?.y?.plus(2)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val firstmiddle: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.plus(9)!!,
+            aqueductportal.coordinate?.y?.plus(2)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val secondmiddle: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.plus(9)!!,
+            aqueductportal.coordinate?.y?.plus(2)!!, aqueductportal.coordinate?.z!!
+        )
+
+        val nearboss: Coordinate = Coordinate(
+            aqueductportal.coordinate?.x?.plus(9)!!,
+            aqueductportal.coordinate?.y?.minus(4)!!, aqueductportal.coordinate?.z!!
+        )
+
+        if(ArchGlacor1.isEmpty)
+               if (debugMode) {
+                    println("No Arch-Glacor Found")
+                    Travel.walkTo(nearboss)
+                    return random.nextLong(1000,2000)
+                }
             ArchGlacor1.forEach {
                 if (debugMode)
                     println(" Arch Glacor Found")
-                useOverload()
-                if(player.inCombat())
-                {
+                //useOverload()
+
+                delay(1000)
+                //attackNpc(ArchGlacor2)
+                if (player.inCombat()) {
                     manageCombatandHealth(player)
                 }
-                useOverload()
-                exposedcore()
-                CreepingIce()
-                GlacyteMech()
-                Flurry()
-                SheerCold()
-                //Inventory = InventoryItemQuery.newQuery().results()
+                /*if(isOverloadActive() == false)
+                {
+                    useOverload()
+                }*/
+                //Soul Split Activate
+                if (VarManager.getVarbitValue(16768) == 0 || VarManager.getVarbitValue(16769) == 0 || VarManager.getVarbitValue(16770) == 0) {
+                    updateSoulSplitActivation()
+                }
+
+                //
+                //Mechanic configuration  Flurry
+                if (ArchGlacor2 != null) {
+                    if (ArchGlacor2.animationId == 34275 || ArchGlacor2.animationId == 34274) {
+                        //Range Prayer Active
+                        handleRangePrayerSwitch()
+                    } else if (ArchGlacor2.animationId == 34272 || ArchGlacor2.animationId == 34273) {
+                        //Magicc Prayer Flick
+                        handleMagicPrayerSwitch()
+                    } else if (ArchGlacor2.animationId == 34276 || ArchGlacor2.animationId == 34277) {
+                        handleMeleePrayerSwitch()
+                    }
+                }
+                // Frost Cannon
+                if (it.animationId == 34278) {
+                    //ActionBar.usePrayer("Deflect Magic")
+                    handleMagicPrayerSwitch()
+                    var adrenalinenumber: Int = VarManager.getVarValue(VarDomainType.PLAYER, 679)
+
+                    var resonance: Component? = ComponentQuery.newQuery(284).spriteId(14222).results().first()
+                    var Devotion: Component? = ComponentQuery.newQuery(284).spriteId(21665).results().first()
+                    delay(1500)
+                    //resonance == null    adrenalinenumber > 600 && Devotion == null
+                    var ResCooldown: Int = ActionBar.getCooldown("Resonance")
+                    if (resonance == null && ResCooldown == 0) {
+                        val success: Boolean = ActionBar.useAbility("Resonance")
+                        println("Resonance Activated")
+                        if (success) {
+                            ResonanceActive++
+                        }
+                    } else if (adrenalinenumber > 250 && Devotion == null) {
+                        val success: Boolean = ActionBar.useAbility("Devotion")
+                        println("Devotion Activated")
+                        if (success) {
+                            println("Devotion Activated Successfully")
+                            DevotionActive++
+                        }
+
+                    }
+                }
+                    //GlacytMech
+                    GlacyteMech()
+                    //Exposed Core
+                    val nearbynpcArm: Npc? =
+                        NpcQuery.newQuery().name("Icy Arm (left)", "Icy Arm (right)").results().first() //, "Icy Arm (right)"
+                    //Inventory = InventoryItemQuery.newQuery().results()
+                    if (it.animationId == 34282) //Core is exposed
+                    {
+                        handleMagicPrayerSwitch()
+                        println("Core's Open Attack Arms to close it")
+                        println("Core Arm Attacking $nearbynpcArm")
+                        attackNpc(nearbynpcArm)
+                        println("Name of NPC ${nearbynpcArm?.name} Health of NPC ${nearbynpcArm?.currentHealth}")
+                    }
+                    ////Creeping ICE
+                    //CreepingIce()
+                val playerLocation = Client.getLocalPlayer()?.coordinate
+                val creepingice: ProjectileQuery = ProjectileQuery.newQuery().id(7480)
+                val creepingiceresult: EntityResultSet<Projectile> = creepingice.results()
+                var currentcycle: Int = net.botwithus.rs3.game.Client.getClientCycle()
+                val randomXoffSet = RandomGenerator.nextInt(4,9)
+                for (projectile in creepingiceresult)
+                {
+                    val playerPostionX = playerLocation?.coordinate?.x
+                    val playerPostionY = playerLocation?.coordinate?.y
+                    val destinationCoordsX = projectile.destination.x
+                    val destinationCoordsY = projectile.destination.y
+
+                    val endCycle = projectile.endCycle
+
+
+                    val playerPosition = playerLocation?.coordinate
+                    val playerPostionZ = playerLocation?.coordinate?.z
+                    val startCoordsX = projectile.start.x.toString()
+                    val startCoordsY = projectile.start.y.toString()
+                    val id = projectile.id
+                    val startCycle = projectile.startCycle
+                    val test = projectile.source.direction1
+                    val test3 = projectile.source.direction2
+                    val target1 = projectile.target
+                    val test1 = projectile.scene
+
+                    ////////////////
+                    println("----------------------------")
+                    println("Prayer Position X: $destinationCoordsX")
+                    println("Prayer Position Y: $destinationCoordsY")
+                    println("Start Projectile Position X: $startCoordsX")
+                    println("Start Projectile Position Y: $startCoordsY")
+                    println("Destination Projectile Position X: $destinationCoordsX")
+                    println("Destination Projectile Position Y: $destinationCoordsY")
+                    println("Projectile Source: $test")
+                    println("Projectile Source: $test3")
+                    println("Projectile Target: $target1")
+                    println("Projectile ID: $id")
+                    println("----------------------------")
+                    println("Projectile Scene $test1")
+
+
+                    if ((playerLocation?.coordinate?.x!! > projectile.destination.x || playerLocation?.coordinate?.x!! < projectile.destination.x) && currentcycle < endCycle) {
+                        //println("Player X Coor $playerPostionX")
+                        val newx = destinationCoordsX + randomXoffSet
+                        //val newy = playerPostionY!! + randomYoffSet
+                        println("newx $newx")
+                        println("Player X Coor $playerPostionX")
+                        Travel.walkTo(newx, playerPostionY!!)
+                        Execution.delay(1000)
+                        println("Moved to position to avoid Creeping Ice")
+                        println("Player X Coor after move $playerPostionX")
+                    }
+
+                }
+
+                    /// Pillar of ICE
+                    //SheerCold()
+                val sheercold = NpcQuery.newQuery().name("Sheer cold")
+                val sheerresult: EntityResultSet<Npc> = sheercold.results()
+                for (projectile1 in sheerresult) {
+                    val currentNpcPosition = projectile1?.coordinate
+                    if (playerLocation != null ) ///(playerPositionx != null && playerPositiony != null) && (previousNpcPositionx != 0 && previousNpcPositiony != 0)  //&& previousNpcPosition != null
+                    {
+                        var newcord = Coordinate(playerLocation!!.x + randomXoffSet, playerLocation!!.y, 0)
+                        println("Inside First If statement -----------------")
+
+                        // val previousDistance = previousNpcPosition!!.distanceTo(playerLocation)
+                        val currentDistance = currentNpcPosition?.distanceTo(playerLocation)
+                        println("Current Distance $currentDistance")
+                        //(previousNpcPositionx < currentNpcPositionx!! && previousNpcPositiony < currentNpcPositiony!!) || (previousNpcPositionx > currentNpcPositionx || previousNpcPositiony > currentNpcPositiony!!)
+                        if (currentDistance!! <= 4.0) {
+                            Travel.walkTo(topleft)
+                            delay(3000)
+                            Travel.walkTo(topRight)
+                            delay(3000)
+                            Travel.walkTo(firstmiddle)
+                            delay(3000)
+                            Travel.walkTo(nearboss)
+                            //Travel.walkTo(newcord)
+                            Execution.delay(750)
+                            println("New Coordinates Walked")
+
+                        }
+                }
+                    }
+
+                    ///Disable Player
+                    if (!player.inCombat()) {
+                        disablePrayer()
+                    }
+
 
             }
 
 
+
+
+
+
+
+            //Item Pick Up
+            val groundquery = GroundItemQuery.newQuery().results().nearest()
+            groundquery.let {
+                println("Found Ground item: ${it!!.name} at ${it!!.coordinate}")
+                if(it!!.interact("Take"))
+                    println("Attempting to pick up: ${it.name}")
+            }
+
+
+            //Teleport Out based on kills defined
+
             return random.nextLong(550, 850)
         }
-        return random.nextLong(250, 850)
-    }
+
 
     private fun updateStatistics() {
         val currentTime: Long = (System.currentTimeMillis() - startTime) / 1000
